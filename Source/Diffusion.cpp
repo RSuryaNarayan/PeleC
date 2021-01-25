@@ -391,11 +391,11 @@ PeleC::getMOLSrcTerm(
 #endif
           // auto const& vol = volume.array(mfi);
           pc_compute_hyp_mol_flux(
-            cbox, qar, qauxar, flx, area_arr, dx, plm_iorder
+            geom, cbox, qar, qauxar, flx, area_arr, dx, plm_iorder
 #ifdef PELEC_USE_EB
             ,
-            flags.array(mfi), d_sv_eb_bndry_geom, Ncut, d_eb_flux_thdlocal,
-            nFlux
+            vfrac.array(mfi), flags.array(mfi), d_sv_eb_bndry_geom, Ncut,
+            d_eb_flux_thdlocal, nFlux
 #endif
           );
         }

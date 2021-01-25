@@ -1,7 +1,9 @@
 #include "MOL.H"
+#include "prob.H"
 
 void
 pc_compute_hyp_mol_flux(
+  amrex::Geometry const& geom,
   const amrex::Box& cbox,
   const amrex::Array4<const amrex::Real>& q,
   const amrex::Array4<const amrex::Real>& qaux,
@@ -16,6 +18,7 @@ pc_compute_hyp_mol_flux(
   const int plm_iorder
 #ifdef PELEC_USE_EB
   ,
+  const amrex::Array4<const amrex::Real>& vfrac,
   const amrex::Array4<amrex::EBCellFlag const>& flags,
   const EBBndryGeom* ebg,
   const int /*Nebg*/,
@@ -132,11 +135,7 @@ pc_compute_hyp_mol_flux(
         amrex::Real flux_tmp[NVAR] = {0.0};
         amrex::Real ustar = 0.0;
 
-        amrex::Real tmp0 = 0.0;
-        amrex::Real tmp1 = 0.0;
-        amrex::Real tmp2 = 0.0;
-        amrex::Real tmp3 = 0.0;
-        amrex::Real tmp4 = 0.0;
+        amrex::Real tmp0 = 0.0, tmp1 = 0.0, tmp2 = 0.0, tmp3 = 0.0, tmp4 = 0.0;
         riemann(
           qtempl[R_RHO], qtempl[R_UN], qtempl[R_UT1], qtempl[R_UT2],
           qtempl[R_P], spl, qtempr[R_RHO], qtempr[R_UN], qtempr[R_UT1],
@@ -176,6 +175,8 @@ pc_compute_hyp_mol_flux(
   const amrex::Real full_area = std::pow(del[0], AMREX_SPACEDIM - 1);
   const auto lo = amrex::lbound(cbox);
   const auto hi = amrex::ubound(cbox);
+  const auto geomdata = geom.data();
+  ProbParmDevice const* prob_parm = PeleC::d_prob_parm_device;
 
   amrex::ParallelFor(nebflux, [=] AMREX_GPU_DEVICE(int L) {
     const amrex::IntVect& iv = ebg[L].iv;
@@ -189,9 +190,77 @@ pc_compute_hyp_mol_flux(
       }
 
       amrex::Real flux_tmp[NVAR] = {0.0};
-      AMREX_D_TERM(flux_tmp[UMX] = -q(iv, QPRES) * ebnorm[0];
-                   , flux_tmp[UMY] = -q(iv, QPRES) * ebnorm[1];
-                   , flux_tmp[UMZ] = -q(iv, QPRES) * ebnorm[2];)
+
+      auto eos = pele::physics::PhysicsType::eos();
+      amrex::Real qtempl[5 + NUM_SPECIES] = {0.0};
+      amrex::Real spl[NUM_SPECIES] = {0.0};
+      qtempl[R_UN] = -(AMREX_D_TERM(
+        q(iv, QU) * ebnorm[0], +q(iv, QV) * ebnorm[1], +q(iv, QW) * ebnorm[2]));
+      qtempl[R_UT1] = 0.0;
+      qtempl[R_UT2] = 0.0;
+      qtempl[R_P] = q(iv, QPRES);
+      qtempl[R_RHO] = q(iv, QRHO);
+      for (int n = 0; n < NUM_SPECIES; n++) {
+        qtempl[R_Y + n] = q(iv, QFS + n);
+      }
+      amrex::Real cavg = qaux(iv, QC);
+      amrex::Real csmall = qaux(iv, QCSML);
+
+      // Flip the velocity about the normal for the right state - will use
+      // left  state for remainder of right state
+      amrex::Real qtempr[5 + NUM_SPECIES] = {0.0};
+      qtempr[R_UN] = -1.0 * qtempl[R_UN];
+
+      amrex::Real eos_state_rho = qtempl[R_RHO];
+      amrex::Real eos_state_p = qtempl[R_P];
+      for (int n = 0; n < NUM_SPECIES; n++) {
+        spl[n] = qtempl[R_Y + n];
+      }
+      amrex::Real eos_state_T;
+      eos.RYP2T(eos_state_rho, spl, eos_state_p, eos_state_T);
+      amrex::Real eos_state_e;
+      eos.RTY2E(eos_state_rho, eos_state_T, spl, eos_state_e);
+      amrex::Real rhoe_l = eos_state_rho * eos_state_e;
+      amrex::Real gamc_l;
+      eos.RTY2G(eos_state_rho, eos_state_T, spl, gamc_l);
+
+      // Copy left state to right (default), except normal velocity which has
+      // already been flipped
+      qtempr[R_RHO] = qtempl[R_RHO];
+      qtempr[R_UT1] = qtempl[R_UT1];
+      qtempr[R_UT2] = qtempl[R_UT2];
+      qtempr[R_P] = qtempl[R_P];
+      amrex::Real spr[NUM_SPECIES] = {0.0};
+      for (int n = 0; n < NUM_SPECIES; n++) {
+        spr[n] = spl[n];
+      }
+      amrex::Real rhoe_r = rhoe_l;
+      amrex::Real gamc_r = gamc_l;
+
+      const bool do_ebfill = ebfill(
+        geomdata, vfrac(iv), iv, AMREX_D_DECL(ebnorm[0], ebnorm[1], ebnorm[2]),
+        qtempl, spl, rhoe_l, gamc_l, qtempr, spr, rhoe_r, gamc_r, prob_parm);
+
+      if (do_ebfill) {
+        amrex::Real tmp0 = 0.0, tmp1 = 0.0, tmp2 = 0.0, tmp3 = 0.0, tmp4 = 0.0,
+                    ustar = 0.0;
+        riemann(
+          qtempl[R_RHO], qtempl[R_UN], qtempl[R_UT1], qtempl[R_UT2],
+          qtempl[R_P], spl, qtempr[R_RHO], qtempr[R_UN], qtempr[R_UT1],
+          qtempr[R_UT2], qtempr[R_P], spr, bc_test_val, cavg, ustar,
+          flux_tmp[URHO], flux_tmp[UMX], flux_tmp[UMY], flux_tmp[UMZ],
+          flux_tmp[UEDEN], flux_tmp[UEINT], tmp0, tmp1, tmp2, tmp3, tmp4);
+
+        const amrex::Real tmp_flx_umx = flux_tmp[UMX];
+        AMREX_D_TERM(flux_tmp[UMX] = -tmp_flx_umx * ebnorm[0];
+                     , flux_tmp[UMY] = -tmp_flx_umx * ebnorm[1];
+                     , flux_tmp[UMZ] = -tmp_flx_umx * ebnorm[2];)
+
+      } else {
+        AMREX_D_TERM(flux_tmp[UMX] = -q(iv, QPRES) * ebnorm[0];
+                     , flux_tmp[UMY] = -q(iv, QPRES) * ebnorm[1];
+                     , flux_tmp[UMZ] = -q(iv, QPRES) * ebnorm[2];)
+      }
 
       // Copy result into ebflux vector. Being a bit chicken here and only
       // copy values where ebg % iv is within box
