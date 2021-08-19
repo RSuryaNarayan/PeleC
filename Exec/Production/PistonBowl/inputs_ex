@@ -113,7 +113,7 @@ tagging.max_vfracerr_lev = 2
 eb2.geom_type = "Line-Piston-Cylinder"
 pelec.eb_boundary_T = 1350.
 pelec.eb_isothermal = 0
-ebd.boundary_grad_stencil_type = 0
+ebd.boundary_grad_stencil_type = 1
 
 # Boundary refinement
 pelec.flame_trac_name = CH4
