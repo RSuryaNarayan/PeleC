@@ -13,6 +13,17 @@
 
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
+amrex::Real
+limited_slope(const amrex::Real dlft, const amrex::Real drgt)
+{
+  return dlft * drgt >= 0.0
+           ? 2.0 * amrex::min<amrex::Real>(
+                     amrex::Math::abs(dlft), amrex::Math::abs(drgt))
+           : 0.0;
+}
+
+AMREX_GPU_DEVICE
+AMREX_FORCE_INLINE
 void
 mol_slope(
   const int i,
@@ -100,6 +111,33 @@ mol_slope(
         : 0.0;
     dq(i, j, k, n) = amrex::Math::copysign(1.0, dcen) *
                      amrex::min<amrex::Real>(dlim, amrex::Math::abs(dcen));
+  }
+
+  // density and velocity
+  for (int n = 0; n < 4; n++) {
+    const amrex::Real dcen = 0.5 * (dlft[n] + drgt[n]);
+    const amrex::Real dlim = limited_slope(dlft[n], drgt[n]);
+    dq(i, j, k, n) = amrex::Math::copysign(1.0, dcen) *
+                     amrex::min<amrex::Real>(dlim, amrex::Math::abs(dcen));
+  }
+
+  // species
+  bool do_species_limiting = false;
+  amrex::Real dlim[NUM_SPECIES] = {0.0};
+  for (int n = 0; n < NUM_SPECIES; n++) {
+    const amrex::Real dcen = 0.5 * (dlft[4 + n] + drgt[4 + n]);
+    dlim[n] = limited_slope(dlft[4 + n], drgt[4 + n]);
+    dq(i, j, k, n) = dcen;
+    if (dlim[n] < amrex::Math::abs(dcen)) {
+      do_species_limiting = true;
+    }
+  }
+
+  if (do_species_limiting) {
+    for (int n = 0; n < NUM_SPECIES; n++) {
+      dq(i, j, k, 4 + n) =
+        amrex::Math::copysign(1.0, dq(i, j, k, 4 + n)) * dlim[n];
+    }
   }
 }
 
