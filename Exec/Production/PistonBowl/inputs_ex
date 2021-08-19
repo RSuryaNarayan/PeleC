@@ -1,6 +1,6 @@
 # ------------------  INPUTS TO MAIN PROGRAM  -------------------
-max_step = 5
-stop_time = 100.0
+max_step = 1000000
+stop_time = 0.0006
 
 # PROBLEM SIZE & GEOMETRY
 geometry.is_periodic =  0   0  0
@@ -49,7 +49,7 @@ amr.max_level       = 1       # maximum level number allowed
 amr.ref_ratio       = 2 2 2 2 # refinement ratio
 amr.regrid_int      = 2       # how often to regrid
 amr.blocking_factor = 8       # block factor in grid generation
-amr.max_grid_size   = 64
+amr.max_grid_size   = 16
 amr.n_error_buf     = 2 2 2 2 # number of buffer cells in error est
 #amr.hydro_tile_size = 8 8 8
 
@@ -58,12 +58,12 @@ amr.loadbalance_with_workestimates = 1
 #amr.loadbalance_level0_int = 1000
 
 # CHECKPOINT FILES
-amr.checkpoint_files_output = 0
+amr.checkpoint_files_output = 1
 amr.check_file      = chk      # root name of checkpoint file
-amr.check_int       = 200      # number of timesteps between checkpoints
+amr.check_int       = 1000      # number of timesteps between checkpoints
 
 # PLOTFILES
-amr.plot_files_output = 0
+amr.plot_files_output = 1
 amr.plot_file        = plt
 amr.plot_int         = 200
 amr.derive_plot_vars = density x_velocity y_velocity z_velocity magvel Y(CH4) Y(O) Y(OH) Y(H) Temp magvort pressure
@@ -85,17 +85,17 @@ prob.centx = 0.00
 prob.centz = 0.00
 prob.r_circ = 0.31250
 prob.r_hole = 0.080
-prob.nholes = 7
-prob.cone_angle= 30.0
+prob.nholes = 4
+prob.cone_angle= 45.0
 
-ic.hitIC = 0
-ic.inres = 32
+ic.hitIC = 1
+ic.inres = 128
 ic.binfmt = 1
-ic.iname = "hit_ic_ut_32.in"
+ic.iname = "hit_ic_ut_128.in"
 ic.uin_norm = 1.3231790983814187
 ic.lscale = 2.4166097335 # = 2*pi / domain length
 ic.offset = -3.1415926536
-ic.urms0 = 120.00
+ic.urms0 = 2000.0
 
 inflow.inflowProfileFile = "InflowPC.bin"
 inflow.turb_inflow_type = 1
