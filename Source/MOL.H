@@ -128,7 +128,7 @@ mol_slope(
     const amrex::Real dcen = 0.5 * (dlft[4 + n] + drgt[4 + n]);
     dlim[n] = limited_slope(dlft[4 + n], drgt[4 + n]);
     dq(i, j, k, n) = dcen;
-    if (dlim[n] < amrex::Math::abs(dcen)) {
+    if ((dlim[n] < amrex::Math::abs(dcen)) && (q(i, j, k, QFS + n) > 1e-10)) {
       do_species_limiting = true;
     }
   }
