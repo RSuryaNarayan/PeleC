@@ -293,6 +293,10 @@ PeleC::variableSetUp()
   set_scalar_bc(bc, phys_bc);
   bcs[cnt] = bc;
   name[cnt] = "Temp";
+  cnt++;
+  set_scalar_bc(bc, phys_bc);
+  bcs[cnt] = bc;
+  name[cnt] = "soot_foil";
 
   for (int i = 0; i < NUM_ADV; ++i) {
     char buf[64];
