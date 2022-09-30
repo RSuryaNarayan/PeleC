@@ -41,6 +41,7 @@ int PeleC::Density = -1;
 int PeleC::Eden = -1;
 int PeleC::Eint = -1;
 int PeleC::Temp = -1;
+int PeleC::Sootfoil = -1;
 int PeleC::Xmom = -1;
 int PeleC::Ymom = -1;
 int PeleC::Zmom = -1;

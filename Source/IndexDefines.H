@@ -10,7 +10,8 @@
 #define UEDEN 4
 #define UEINT 5
 #define UTEMP 6
-#define UFA 7
+#define USOOT 7
+#define UFA 8
 
 #define QRHO 0
 #define QU 1
@@ -50,7 +51,7 @@
 #define SlipWall 4
 #define NoSlipWall 5
 
-#define NTHERM 7
+#define NTHERM 8
 #define QTHERM 8
 
 #define NUM_ADV 0

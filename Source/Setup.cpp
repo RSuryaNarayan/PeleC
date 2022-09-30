@@ -162,6 +162,7 @@ PeleC::variableSetUp()
   Eden = cnt++;
   Eint = cnt++;
   Temp = cnt++;
+  Sootfoil = cnt++;
 
   if (NUM_ADV > 0) {
     FirstAdv = cnt;

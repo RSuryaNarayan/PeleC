@@ -504,7 +504,7 @@ public:
     const int level);
 
   // static int NVAR;
-  static int Density, Xmom, Ymom, Zmom, Eden, Eint, Temp;
+  static int Density, Xmom, Ymom, Zmom, Eden, Eint, Temp, Sootfoil;
 
   static int FirstAdv;
   static int FirstSpec;
