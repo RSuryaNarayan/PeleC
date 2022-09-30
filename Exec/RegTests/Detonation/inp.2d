@@ -1,0 +1,81 @@
+#-----------INPUTS TO MAIN PROGRAM  -------------------
+max_step = 5000
+#stop_time = 1e-5
+
+# PROBLEM SIZE & GEOMETRY
+geometry.is_periodic =  0   0  1
+geometry.coord_sys   =  0       # 0 => cart
+geometry.prob_lo     =  0.00000 0.00000 0.0 
+geometry.prob_hi     =  43.5600 0.9680 0.25
+amr.n_cell           =  720    16      16
+
+# >>>>>>>>>>>>>  BC KEYWORDS <<<<<<<<<<<<<<<<<<<<<<
+# Interior, UserBC, Symmetry, SlipWall, NoSlipWall
+# >>>>>>>>>>>>>  BC KEYWORDS <<<<<<<<<<<<<<<<<<<<<<
+
+pelec.lo_bc       =  "NoSlipWall" "Symmetry" "Interior"
+pelec.hi_bc       =  "FOExtrap" "Symmetry" "Interior"
+
+# WHICH PHYSICS
+pelec.do_hydro = 1
+pelec.do_react = 1
+pelec.diffuse_temp = 1
+pelec.diffuse_vel  = 1
+pelec.diffuse_spec = 1
+pelec.diffuse_enth = 1
+pelec.chem_integrator = "ReactorCvode"
+cvode.solve_type = GMRES
+
+# TIME STEP CONTROL
+pelec.dt_cutoff      = 5.e-20  # level 0 timestep below which we halt
+pelec.cfl            = 0.05     # cfl number for hyperbolic system
+pelec.init_shrink    = 1.0    # scale back initial timestep
+pelec.change_max     = 1.05     # maximum increase in dt over successive steps
+
+# DIAGNOSTICS & VERBOSITY
+pelec.sum_interval   = 1       # timesteps between computing mass
+pelec.v              = 2       # verbosity in PeleC cpp files
+amr.v                = 3       # verbosity in Amr.cpp
+#amr.grid_log         = grdlog  # name of grid logging file
+#amr.restart		= chk00010 #restart from checkpoint 
+
+# REFINEMENT / REGRIDDING
+amr.max_level       = 0       # maximum level number allowed
+amr.ref_ratio       = 2 2 2 2 # refinement ratio
+amr.regrid_int      = 2       # how often to regrid
+amr.blocking_factor = 4       # block factor in grid generation
+amr.max_grid_size   = 8 
+#amr.restart = chk01000
+# EMBEDDED GEOMETRY 
+eb2.geom_type = "all_regular"
+
+#TAGGING
+tagging.temperr = 1e20
+tagging.tempgrad = 8e-5
+tagging.max_temperr_lev = 5
+tagging.max_tempgrad_lev = 5
+tagging.max_vfracerr_lev = 5
+
+# CHECKPOINT FILES
+amr.checkpoint_files_output = 0
+amr.check_file      = chk      # root name of checkpoint file
+amr.check_int       = 100       # for cluster - number of timesteps between checkpoints
+# PLOTFILES
+amr.plot_files_output = 1
+amr.plot_file       = plt
+#amr.plot_int        = 10
+amr.plot_int        = 10 #for cluster
+amr.plot_vars = ALL
+amr.derive_plot_vars = ALL
+
+# PROBLEM PARAMS
+prob.do_perturb = 1
+prob.P_amb = 35000
+prob.T_amb = 300
+prob.Y_CH4 = 0.20044 
+prob.Y_N2 = 0.00000
+prob.Y_O2 = 0.79956
+prob.delta_half = 0.4775
+prob.frac_rho_fluc = 1.0
+prob.znd_datafile = "ch4o2_gri12.dat"
+prob.PostStep= 1
